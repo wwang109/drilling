@@ -23,10 +23,9 @@ void setup() {
    hira = new qbox(SCREEN_WIDTH/10, wit, len, wit, "Hiragana");
    hira.strokes = true;
    kata = new qbox(SCREEN_WIDTH/10 + len, wit, len, wit, "Katakana");
-   kanji = new qbox(SCREEN_WIDTH/10 + len*2, wit, len, wit, "Kanji");
+   kanji = new qbox(SCREEN_WIDTH/10 + len*2, wit, len, wit, "Kanji (Not completed)");
    swidth = SCREEN_WIDTH;
-   sheight = SCREEN_HEIGHT;
-   
+   sheight = SCREEN_HEIGHT;   
    //must have game options 
    
    
@@ -45,7 +44,7 @@ void draw() {
    size(SCREEN_WIDTH, SCREEN_HEIGHT);
    fill(250); 
    len = (SCREEN_WIDTH * .8)/3;
-   wit = SCREEN_HEIGHT/10;    
+   wit = SCREEN_HEIGHT/10;  
    if(game) {
       play_game();
    }
@@ -54,10 +53,7 @@ void draw() {
          quick_game.resize(SCREEN_WIDTH/10, 0, SCREEN_WIDTH * .8, wit);
          hira.resize(SCREEN_WIDTH/10, wit, len, wit);
          kata.resize(SCREEN_WIDTH/10 + len, wit, len, wit);
-         kanji.resize(SCREEN_WIDTH/10 + len*2, wit, len, wit);
-         
-         swidth = SCREEN_WIDTH;
-         sheight = SCREEN_HEIGHT;        
+         kanji.resize(SCREEN_WIDTH/10 + len*2, wit, len, wit);       
       }  
       start_menu();
    }
@@ -87,7 +83,9 @@ void play_game() {
 
 void mouseClicked() {
    if(game) {
-   
+      if(restart.over())
+         game = false;
+      match.controls();
    }
    else {
       mouse_click_start();
@@ -107,7 +105,7 @@ void mouse_click_start() {
       kanji.strokes = false;
       }
    if(kanji.over()){
-      kanji.strokes = true;
+      kanji.strokes = false;
       kata.strokes = false;
       hira.strokes = false;
       }
@@ -137,14 +135,14 @@ void start_game(){
       if(k==0)
          return; //get out of here if none selected
    }   
-      match = new game1(SCREEN_WIDTH, SCREEN_HEIGHT);
+      match = new game1(SCREEN_WIDTH, SCREEN_HEIGHT, 6, lines);
       game = true;
 
 }
 
 void start_menu() {
    textAlign(CENTER,CENTER);
-   text("OPTIONS", SCREEN_WIDTH/10, wit*2, SCREEN_WIDTH * .8, wit );	
+   text("OPTIONS", SCREEN_WIDTH/10, wit*2, SCREEN_WIDTH * .8, wit);	
    
    quick_game.displays();
    hira.displays();
@@ -155,20 +153,91 @@ void start_menu() {
 
 /*
 void next_question() {
-	rounds++;
+
+}
+*/
+class game1 {
+   qbox [] question;
+   qbox dp;
+   String [] text, lines;
+   //true or false when an option has been selected
+   bool answered;
+   //values for scores and information
+   int correct, wrong, rounds, choice;
+   
+   int box_width;
+   int box_length;
+   
+   game1(int w, int l, int num_choice, String q[]) {
+      lines = q;
+      choice = num_choice;
+      answered = false;
+      dp = new qbox(w/10 *3, l/10*2, w * .4, (l/10)*2, "");
+      text = new String[3];
+      question = new qbox[choice];
+
+      box_width = w/(choice/2);
+      box_length = (l/10)*2;   
+      int i, j, k=0;
+      for(i=0;i<2;i++) {
+         for(j=0;j<(choice/2);j++, k++) {
+            question[k] = new qbox(j*box_width, (i * box_length) + (l/10) * 6, box_width, box_length, "");
+         }
+      }
+      next_question();
+       
+   }
+   
+   void controls() {
+      if(answered == true) {
+         rounds++;
+         answered = false;
+         for(int i=0;i<choice;i++)
+            question[i].strokes = false;           
+         next_question();
+      }
+      else {   
+         for(int j=0;j<choice;j++) {
+            if(question[j].over()) {
+               //check if answer is correct
+               if(question[j].value == dp.value) {
+                  correct++;
+                  question[j].strokes = true;
+                  question[j].currentColor = color(0,200,200);
+               }
+               else {
+                  wrong++;
+                  question[j].strokes = true;
+                  question[j].currentColor = color(200,50,50);
+                  for(i=0;i<choice;i++) {
+                     if(question[i].value == dp.value) {
+                        question[i].strokes = true;
+                        question[i].currentColor = color(0,200,200);                        
+                     }
+                  }                    
+               }
+               //change rounds
+               answered = true;               			
+               return;
+            }
+         }      
+      }
+   }
+   
+   void next_question() {
 	//changing word
     int ran = int(random(lines.length));
     //array of num 
-    int [] num = new num[num_choice];
-    for(int i=0; i<num_choice;i++)
+    int [] num = new num[choice];
+    for(int i=0; i<choice;i++)
       num[i]= 0;
     String [] quest = split(lines[ran], ':');
     //choosing which box question
-    int ans = int(random(num_choice));
+    int ans = int(random(choice));
     //put answer number into num[] 
 	 dp.add(quest);
     int j;
-   for(i=0;i<num_choice;i++){
+   for(i=0;i<choice;i++){
       num[i] = int(random(lines.length));
       for(j=0;j<i;j++) {
          if(num[j] == num[i] || num[i] == ran){
@@ -181,30 +250,35 @@ void next_question() {
    }
    question[ans].add(quest);
    if(kanji.strokes == true)
-      reading.name = quest[2]; 
-}
-*/
-class game1 {
-   qbox [] question;
-   qbox dp;
-   String [] text;
-   int correct, wrong, rounds;
-   game1(int w, int l) {
-   
-      dp = new qbox(w/10 *3, l/10*2, w * .4, l/10, "");
-      text = new String[3];
-      text[0] = "Correct = 0";
-      text[1] = "Wrong = 0";
-      text[2] = "rounds = 0";   
+      reading.name = quest[2];   
    
    }
+   
    void show() {
-      dp.displays();
+      text[0] = "Correct = " + correct;
+      text[1] = "Wrong = " + wrong;
+      text[2] = "rounds = " + rounds;   
+      dp.display(true);
+      
+      for(int i=0;i<choice;i++) {
+         question[i].display(false);
+      }  
+      
    }
    
    void resize(int w, int l) {
-      dp.resize(w/10 *3, l/10*2, w * .4, l/10); 
-
+      dp.resize(w/10 *3, l/10*2, w * .4, l/10*2); 
+   
+      box_width = w/(choice/2);
+      box_length = (l/10)*2;  
+      
+      int i, j, k=0;
+      for(i=0;i<2;i++) {
+         for(j=0;j<choice/2;j++, k++) {
+            question[k].resize(j*box_width, (i * box_length) + (l/10) * 6, box_width, box_length);
+         }
+      }      
+      
    }
 
 
